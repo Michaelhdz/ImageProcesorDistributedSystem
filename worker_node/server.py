@@ -38,10 +38,16 @@ _server = None  # referencia global para shutdown
 
 # ── Heartbeat ─────────────────────────────────────────────────────────────────
 
+logger = logging.getLogger(__name__)
+
 def get_current_ip():
+    """
+    Detecta la dirección IP de la interfaz de red activa.
+    Ideal para hotspots de móvil donde la IP cambia frecuentemente.
+    """
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # No necesita conexión real a Google, solo para que el OS elija la interfaz activa
+        # No necesita conexión real a internet, solo para que el OS elija la IP local correcta
         s.connect(('8.8.8.8', 1))
         IP = s.getsockname()[0]
     except Exception:
@@ -50,43 +56,53 @@ def get_current_ip():
         s.close()
     return IP
 
-# --- ACTUALIZA TUS VARIABLES ---
-# En lugar de usar NODE_HOST fijo, usamos la función
-CURRENT_NODE_IP = get_current_ip()
-GRPC_PORT = int(os.getenv('GRPC_PORT', 50051))
-
 def send_heartbeat(max_retries: int = 10, retry_delay: int = 5):
     """
     Notifica al Servidor de Aplicación que este nodo está activo.
-    Reintenta hasta max_retries veces con retry_delay segundos entre intentos.
+    Detecta dinámicamente la IP para evitar errores de red (EHOSTUNREACH/DEADLINE_EXCEEDED).
     """
+    # 1. Detectar IP real en el momento del envío
+    current_ip = get_current_ip()
+    grpc_port = int(os.getenv('GRPC_PORT', 50051))
+    app_server_url = os.getenv('APP_SERVER_URL', 'http://10.245.168.182:3000') # Ajusta según tu .env
+    internal_key = os.getenv('INTERNAL_KEY', 'tu_clave_secreta')
+
     for attempt in range(1, max_retries + 1):
         try:
-            url      = f"{APP_SERVER_URL}/api/nodes/heartbeat"
-            payload = logger.info(f"[Heartbeat] Enviando: {CURRENT_NODE_IP}:{GRPC_PORT}")
-            headers  = {"X-Internal-Key": INTERNAL_KEY, "Content-Type": "application/json"}
+            url = f"{app_server_url}/api/nodes/heartbeat"
+            
+            # El secreto es enviar 'current_ip' en lugar de una variable fija
+            payload = {
+                "host": current_ip, 
+                "port": grpc_port
+            }
+            
+            headers = {
+                "X-Internal-Key": internal_key, 
+                "Content-Type": "application/json"
+            }
+
+            logger.info(f"[Heartbeat] Intento {attempt}: Registrando nodo en {current_ip}:{grpc_port}")
+            
             response = requests.post(url, json=payload, headers=headers, timeout=8)
 
             if response.status_code == 200:
                 node_id = response.json().get('nodeId')
-                logger.info(f"[Heartbeat] Registrado exitosamente — nodeId={node_id} | host={NODE_HOST}:{GRPC_PORT}")
+                logger.info(f"[Heartbeat] ÉXITO — Registrado con nodeId={node_id} en {current_ip}")
                 return True
             else:
-                logger.warning(f"[Heartbeat] Respuesta inesperada {response.status_code}: {response.text}")
+                logger.warning(f"[Heartbeat] Error {response.status_code}: {response.text}")
 
         except requests.exceptions.ConnectionError:
-            logger.warning(f"[Heartbeat] Intento {attempt}/{max_retries} — Servidor de App no disponible en {APP_SERVER_URL}")
-        except requests.exceptions.Timeout:
-            logger.warning(f"[Heartbeat] Intento {attempt}/{max_retries} — Timeout al contactar {APP_SERVER_URL}")
+            logger.error(f"[Heartbeat] Error de conexión: No se pudo contactar al App Server en {url}")
         except Exception as e:
-            logger.warning(f"[Heartbeat] Intento {attempt}/{max_retries} — Error: {e}")
+            logger.error(f"[Heartbeat] Error inesperado: {e}")
 
         if attempt < max_retries:
-            logger.info(f"[Heartbeat] Reintentando en {retry_delay}s...")
+            logger.info(f"Reintentando en {retry_delay}s...")
             time.sleep(retry_delay)
 
-    logger.warning("[Heartbeat] No se pudo registrar el heartbeat después de todos los intentos")
-    logger.warning("[Heartbeat] El nodo continuará activo — el registro puede hacerse manualmente")
+    logger.error("[Heartbeat] Fallaron todos los intentos de registro.")
     return False
 
 
