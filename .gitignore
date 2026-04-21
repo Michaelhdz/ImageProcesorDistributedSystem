@@ -4,6 +4,7 @@ jspm_packages/
 
 # Archivos de entorno y secretos
 .env
+.env*
 .env.local
 .env.development.local
 .env.test.local
