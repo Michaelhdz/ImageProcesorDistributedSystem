@@ -65,7 +65,7 @@ def send_heartbeat(max_retries: int = 10, retry_delay: int = 5):
     current_ip = get_current_ip()
     grpc_port = int(os.getenv('GRPC_PORT', 50051))
     app_server_url = os.getenv('APP_SERVER_URL', 'http://10.245.168.182:3000') # Ajusta según tu .env
-    internal_key = os.getenv('INTERNAL_KEY', 'tu_clave_secreta')
+    internal_key = os.getenv('INTERNAL_API_KEY', 'tu_clave_secreta')
 
     for attempt in range(1, max_retries + 1):
         try:
