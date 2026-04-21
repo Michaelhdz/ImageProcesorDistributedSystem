@@ -156,10 +156,17 @@ class BatchService extends IBatchService {
         imageJob.id,
         file.originalname
       );
+      console.log('[DEBUG] Respuesta exacta del nodo:', JSON.stringify(uploadResponse));
 
-      // Actualizar ruta real en BD
+      const realPath = uploadResponse.local_input_path || uploadResponse.localInputPath;
+
+      if (!realPath) {
+          console.error('[ERROR] El nodo no devolvió ninguna ruta. Respuesta:', uploadResponse);
+          throw new Error('El nodo de procesamiento no devolvió la ruta del archivo.');
+      }
+
       await BdApiClient.patch(`/image-jobs/${imageJob.id}`, {
-        local_input_path: uploadResponse.local_input_path
+        local_input_path: realPath
       });
 
       // Registrar log de subida
