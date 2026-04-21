@@ -3,7 +3,7 @@ require('dotenv').config();
 const axios   = require('axios');
 const IBdApi  = require('../interfaces/IBdApi');
 
-const BASE_URL     = process.env.BD_API_URL || 'http://192.168.56.1:8000';
+const BASE_URL     = process.env.BD_API_URL || 'http://192.168.1.22:8000';
 const MAX_RETRIES  = 3;
 const RETRY_DELAY  = 500; // ms
 
