@@ -8,6 +8,7 @@ import time
 import signal
 import logging
 import requests
+import socket
 from concurrent import futures
 from dotenv import load_dotenv
 
@@ -37,6 +38,23 @@ _server = None  # referencia global para shutdown
 
 # ── Heartbeat ─────────────────────────────────────────────────────────────────
 
+def get_current_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # No necesita conexión real a Google, solo para que el OS elija la interfaz activa
+        s.connect(('8.8.8.8', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+# --- ACTUALIZA TUS VARIABLES ---
+# En lugar de usar NODE_HOST fijo, usamos la función
+CURRENT_NODE_IP = get_current_ip()
+GRPC_PORT = int(os.getenv('GRPC_PORT', 50051))
+
 def send_heartbeat(max_retries: int = 10, retry_delay: int = 5):
     """
     Notifica al Servidor de Aplicación que este nodo está activo.
@@ -45,7 +63,7 @@ def send_heartbeat(max_retries: int = 10, retry_delay: int = 5):
     for attempt in range(1, max_retries + 1):
         try:
             url      = f"{APP_SERVER_URL}/api/nodes/heartbeat"
-            payload  = {"host": NODE_HOST, "port": GRPC_PORT}
+            payload = logger.info(f"[Heartbeat] Enviando: {CURRENT_NODE_IP}:{GRPC_PORT}")
             headers  = {"X-Internal-Key": INTERNAL_KEY, "Content-Type": "application/json"}
             response = requests.post(url, json=payload, headers=headers, timeout=8)
 
