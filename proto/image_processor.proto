@@ -1,0 +1,73 @@
+syntax = "proto3";
+package imageprocessor;
+
+// ============================================================================
+// Contrato gRPC — Nodo Trabajador
+// Consumido por: NodeManager (VM1 — Node.js)
+// Implementado por: ImageProcessorServicer (VM2, VM3 — Python)
+// ============================================================================
+service ImageProcessorService {
+  // Subida de imagen desde VM1 al nodo (client streaming)
+  rpc UploadImage        (stream ImageChunk)        returns (UploadResponse);
+  // Procesamiento de transformaciones sobre imagen ya almacenada en el nodo
+  rpc ProcessImage       (ProcessRequest)           returns (ProcessResponse);
+  // Descarga de imagen individual (server streaming)
+  rpc DownloadImage      (DownloadRequest)          returns (stream ImageChunk);
+  // Descarga de múltiples imágenes de un batch (server streaming — fan-out)
+  rpc DownloadBatchImages(BatchDownloadRequest)     returns (stream ImageChunk);
+  // Health check del nodo
+  rpc GetHealth          (HealthRequest)            returns (HealthResponse);
+}
+
+message ImageChunk {
+  int32  image_id   = 1;
+  string filename   = 2;
+  bytes  chunk_data = 3;
+  bool   is_last    = 4;
+}
+
+message UploadResponse {
+  int32  image_id         = 1;
+  string local_input_path = 2;
+  bool   success          = 3;
+  string error_message    = 4;
+}
+
+message ProcessRequest {
+  int32                   job_id          = 1;
+  int32                   image_id        = 2;
+  repeated Transformation transformations = 3;
+}
+
+message Transformation {
+  string type       = 1;
+  string params     = 2;
+  int32  exec_order = 3;
+}
+
+message ProcessResponse {
+  int32  job_id            = 1;
+  int32  image_id          = 2;
+  bool   success           = 3;
+  string local_result_path = 4;
+  string error_message     = 5;
+  int64  duration_ms       = 6;
+}
+
+message DownloadRequest {
+  int32 image_id = 1;
+}
+
+message BatchDownloadRequest {
+  int32          batch_id  = 1;
+  repeated int32 image_ids = 2;
+}
+
+message HealthRequest {}
+
+message HealthResponse {
+  string status        = 1;
+  int32  active_jobs   = 2;
+  float  cpu_usage_pct = 3;
+  float  mem_usage_pct = 4;
+}
