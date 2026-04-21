@@ -318,8 +318,12 @@ class BatchService extends IBatchService {
     // Fan-out / Fan-in
     await NodeManager.streamBatchZip(jobsByNodeId, archive);
 
-    archive.finalize();
-    console.log(`[BatchService] archive.finalize() llamado — stream ZIP enviando al cliente`);
+  await archive.finalize(); 
+      console.log(`[BatchService] archive.finalize() completado exitosamente`);
+  } catch (err) {
+      console.error(`[BatchService] Error durante el stream de descarga: ${err.message}`);
+      // Es vital cerrar el archive con error si algo falló para no mandar un zip corrupto
+      archive.abort(); 
   }
 }
 
