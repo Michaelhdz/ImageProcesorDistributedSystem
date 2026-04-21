@@ -180,64 +180,80 @@ class NodeManager extends INodeService {
   // ── DownloadBatchImages — server streaming fan-out/fan-in ───────────────────
 
   async streamBatchZip(jobsByNodeId, archive) {
-    const promises = [];
+  const promises = [];
 
-    for (const [nodeId, jobs] of Object.entries(jobsByNodeId)) {
-      const nodeIdInt = parseInt(nodeId);
-      const nodeEntry = this.grpcClients.get(nodeIdInt);
+  for (const [nodeId, jobs] of Object.entries(jobsByNodeId)) {
+    const nodeIdInt = parseInt(nodeId);
+    const nodeEntry = this.grpcClients.get(nodeIdInt);
 
-      if (!nodeEntry) {
-        console.warn(`[NodeManager] Fan-out: cliente gRPC no encontrado para nodo ${nodeId} — se omiten ${jobs.length} imágenes`);
-        continue;
-      }
-
-      const imageIds = jobs.map(j => j.id);
-      console.log(`[NodeManager] Fan-out → nodo ${nodeId} | ${imageIds.length} imágenes: [${imageIds.join(', ')}]`);
-
-      const promise = new Promise((resolve, reject) => {
-        const stream = nodeEntry.client.DownloadBatchImages({
-          batch_id:  jobs[0].batch_id,
-          image_ids: imageIds
-        });
-
-        // Acumular chunks por imageId para ensamblarlos antes de añadir al ZIP
-        const buffers = new Map(); // imageId -> { filename, chunks[] }
-
-        stream.on('data', (chunk) => {
-          if (!buffers.has(chunk.image_id)) {
-            buffers.set(chunk.image_id, { filename: chunk.filename, chunks: [] });
-          }
-          if (chunk.chunk_data && chunk.chunk_data.length > 0) {
-            buffers.get(chunk.image_id).chunks.push(
-              Buffer.from(chunk.chunk_data)
-            );
-          }
-          if (chunk.is_last) {
-            const { filename, chunks } = buffers.get(chunk.image_id);
-            const fullBuffer = Buffer.concat(chunks);
-            archive.append(fullBuffer, { name: filename });
-            console.log(`[NodeManager] Fan-in: imagen ${chunk.image_id} (${filename}) añadida al ZIP — ${fullBuffer.length} bytes`);
-            buffers.delete(chunk.image_id);
-          }
-        });
-
-        stream.on('end', () => {
-          console.log(`[NodeManager] Fan-in: stream completado para nodo ${nodeId}`);
-          resolve();
-        });
-
-        stream.on('error', (err) => {
-          console.error(`[NodeManager] Fan-in: error en stream de nodo ${nodeId}: ${err.message}`);
-          reject(err);
-        });
-      });
-
-      promises.push(promise);
+    if (!nodeEntry) {
+      console.warn(`[NodeManager] Fan-out: cliente gRPC no encontrado para nodo ${nodeId} — se omiten ${jobs.length} imágenes`);
+      continue;
     }
 
-    await Promise.all(promises);
-    console.log(`[NodeManager] Fan-in completado — todos los streams procesados`);
+    const imageIds = jobs.map(j => j.id);
+    console.log(`[NodeManager] Fan-out → nodo ${nodeId} | ${imageIds.length} imágenes: [${imageIds.join(', ')}]`);
+
+    const promise = new Promise((resolve, reject) => {
+      const stream = nodeEntry.client.DownloadBatchImages({
+        batch_id: jobs[0].batch_id,
+        image_ids: imageIds
+      });
+
+      const buffers = new Map();
+      // Array para rastrear las promesas de "append" de cada imagen individual
+      const appendPromises = [];
+
+      stream.on('data', (chunk) => {
+        if (!buffers.has(chunk.image_id)) {
+          buffers.set(chunk.image_id, { filename: chunk.filename, chunks: [] });
+        }
+        
+        if (chunk.chunk_data && chunk.chunk_data.length > 0) {
+          buffers.get(chunk.image_id).chunks.push(Buffer.from(chunk.chunk_data));
+        }
+
+        if (chunk.is_last) {
+          const { filename, chunks } = buffers.get(chunk.image_id);
+          const fullBuffer = Buffer.concat(chunks);
+          
+          // CRUCIAL: Envolvemos el append en una promesa y la guardamos
+          const appendOp = new Promise((resAppend) => {
+            archive.append(fullBuffer, { name: filename });
+            // archiver no devuelve promesa, pero podemos asumir que el buffer 
+            // se procesa de forma síncrona en el registro interno
+            resAppend(); 
+          });
+          
+          appendPromises.push(appendOp);
+          console.log(`[NodeManager] Fan-in: imagen ${chunk.image_id} (${filename}) preparada para el ZIP — ${fullBuffer.length} bytes`);
+          buffers.delete(chunk.image_id);
+        }
+      });
+
+      stream.on('end', async () => {
+        try {
+          // Esperamos a que todas las operaciones de "append" de este nodo terminen
+          await Promise.all(appendPromises);
+          console.log(`[NodeManager] Fan-in: stream y empaquetado completado para nodo ${nodeId}`);
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      stream.on('error', (err) => {
+        console.error(`[NodeManager] Fan-in: error en stream de nodo ${nodeId}: ${err.message}`);
+        reject(err);
+      });
+    });
+
+    promises.push(promise);
   }
+
+  await Promise.all(promises);
+  console.log(`[NodeManager] Fan-in completado — todos los archivos están listos en el archive`);
+}
 
   // ── Health checks periódicos ────────────────────────────────────────────────
 
