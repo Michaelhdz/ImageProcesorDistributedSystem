@@ -1,5 +1,6 @@
-grpcio
-grpcio-tools
-Pillow
-requests
-psutil
+grpcio==1.62.0
+grpcio-tools==1.62.0
+Pillow==10.2.0
+requests==2.31.0
+psutil==5.9.8
+python-dotenv==1.0.1
