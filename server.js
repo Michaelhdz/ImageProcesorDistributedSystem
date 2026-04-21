@@ -10,7 +10,7 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('  Servidor de Aplicación — Sistema Distribuido UPB');
   console.log('═══════════════════════════════════════════════════════');
   console.log(`  Puerto:      ${PORT}`);
-  console.log(`  BD API:      ${process.env.BD_API_URL || 'http://192.168.56.1:8000'}`);
+  console.log(`  BD API:      ${process.env.BD_API_URL || 'http://192.168.1.22:8000'}`);
   console.log(`  Redis:       ${process.env.REDIS_HOST || '127.0.0.1'}:${process.env.REDIS_PORT || '6379'}`);
   console.log('═══════════════════════════════════════════════════════');
   NodeManager.startHealthChecks();
