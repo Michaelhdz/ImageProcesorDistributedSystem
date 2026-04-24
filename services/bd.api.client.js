@@ -31,21 +31,22 @@ async function withRetry(method, path, body = null, label) {
   let lastErr;
   
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    // Rotamos la URL: en cada intento probamos una IP distinta si hay varias
     const currentBaseUrl = URLS[(attempt - 1) % URLS.length];
     
     try {
-      return await http({
-        method: method,
+      // Usamos directamente axios.request o el método de la instancia
+      // de forma explícita para evitar errores de contexto
+      return await http.request({
+        method: method.toLowerCase(), // Aseguramos que sea string minúscula
         url: `${currentBaseUrl}${path}`,
         data: body
       });
     } catch (err) {
       lastErr = err;
       
-      // No reintentar si es error de cliente (4xx) como 404 o 400
       if (err.status && err.status >= 400 && err.status < 500) throw err;
       
+      // Corregimos el log para que no imprima "undefined"
       console.warn(`[BdApiClient] ${label} — Usando: ${currentBaseUrl} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
       
       if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY * attempt);
