@@ -24,6 +24,7 @@ class NodeManager extends INodeService {
     super();
     this.grpcClients      = new Map(); // nodeId -> { client, node }
     this._healthTimer     = null;
+    this.lastUsedIndex = 0;
   }
 
   // ── INodeService ────────────────────────────────────────────────────────────
@@ -103,9 +104,20 @@ class NodeManager extends INodeService {
     if (candidates.length === 0) {
       throw new Error('No hay nodos disponibles (todos inactivos o con error)');
     }
-    candidates.sort((a, b) => a.activeJobs - b.activeJobs);
-    const selected = candidates[0];
-    console.log(`[NodeManager] Nodo seleccionado: ${selected.nodeId} (least-load: ${selected.activeJobs} jobs)`);
+    // 1. Encontrar el valor mínimo de carga actual
+    const minJobs = Math.min(...candidates.map(c => c.activeJobs));
+
+    // 2. Filtrar todos los que tienen esa carga mínima (los "empatados")
+    const bestCandidates = candidates.filter(c => c.activeJobs === minJobs);
+
+    // 3. Aplicar Round Robin sobre los empatados
+    this.lastUsedIndex = (this.lastUsedIndex || 0) % bestCandidates.length;
+    const selected = bestCandidates[this.lastUsedIndex];
+
+    // 4. Actualizar el índice para la siguiente petición
+    this.lastUsedIndex = (this.lastUsedIndex + 1) % bestCandidates.length;
+
+    console.log(`[NodeManager] Nodo seleccionado: ${selected.nodeId} (Carga: ${selected.activeJobs}, Empatados: ${bestCandidates.length})`);
     return selected;
   }
 
