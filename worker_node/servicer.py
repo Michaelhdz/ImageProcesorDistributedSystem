@@ -295,10 +295,12 @@ class ImageProcessorServicer(IImageProcessorService, pb_grpc.ImageProcessorServi
             active = self._active_jobs
         cpu = psutil.cpu_percent(interval=0.1)
         mem = psutil.virtual_memory().percent
-        logger.debug(f"[Servicer] GetHealth: active_jobs={active} | CPU={cpu:.1f}% | MEM={mem:.1f}%")
+        current_threads = threading.active_count()
+        logger.debug(f"[Servicer] GetHealth: active_jobs={active} | CPU={cpu:.1f}% | MEM={mem:.1f}% `| Threads={current_threads}")
         return pb.HealthResponse(
             status        = 'SERVING',
             active_jobs   = active,
             cpu_usage_pct = cpu,
-            mem_usage_pct = mem
+            mem_usage_pct = mem,
+            active_threads = current_threads
         )

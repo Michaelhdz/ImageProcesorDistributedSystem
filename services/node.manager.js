@@ -268,7 +268,13 @@ class NodeManager extends INodeService {
             status,
             last_ping_at: new Date().toISOString()
           });
-          console.log(`[NodeManager] Nodo ${nodeId}: ${status} | jobs=${health.active_jobs} | CPU=${health.cpu_usage_pct?.toFixed(1)}% | MEM=${health.mem_usage_pct?.toFixed(1)}%`);
+          BdApiClient.saveMetrics({
+            node_id: nodeId.toString(), // O `${host}:${port}`
+            cpu_usage: health.cpu_usage_pct || 0,
+            ram_usage: health.mem_usage_pct || 0,
+            active_threads: health.active_threads || 0
+          }).catch(err => console.error(`[NodeManager] Error guardando métricas nodo ${nodeId}:`, err.message));
+          console.log(`[NodeManager] Nodo ${nodeId}: ${status} | jobs=${health.active_jobs} | CPU=${health.cpu_usage_pct?.toFixed(1)}% | MEM=${health.mem_usage_pct?.toFixed(1)}% | Threads=${health.active_threads}`);
         } catch (err) {
           console.error(`[NodeManager] Health check fallido — nodo ${nodeId}: ${err.message}`);
           await BdApiClient.patch(`/nodes/${nodeId}/status`, {

@@ -55,6 +55,9 @@ class BdApiClient extends IBdApi {
   delete(path) {
     return withRetry(() => http.delete(path), `DELETE ${path}`);
   }
+  saveMetrics(metricsData) {
+    return this.post('/metrics', metricsData);
+  }
 }
 
 
