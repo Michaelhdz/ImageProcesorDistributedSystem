@@ -3,14 +3,15 @@ require('dotenv').config();
 const axios   = require('axios');
 const IBdApi  = require('../interfaces/IBdApi');
 
-const BASE_URL     = process.env.BD_API_URL || 'http://192.168.1.22:8000';
+const RAW_URLS = process.env.BD_API_URL || 'http://192.168.1.22:8000';
+const URLS = RAW_URLS.split(',').map(url => url.trim());
+
 const MAX_RETRIES  = 3;
 const RETRY_DELAY  = 500; // ms
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const http = axios.create({
-  baseURL: BASE_URL,
   timeout: 8000,
   headers: { 'Content-Type': 'application/json' }
 });
@@ -26,16 +27,27 @@ http.interceptors.response.use(
   }
 );
 
-async function withRetry(fn, label) {
+async function withRetry(method, path, body = null, label) {
   let lastErr;
+  
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // Rotamos la URL: en cada intento probamos una IP distinta si hay varias
+    const currentBaseUrl = URLS[(attempt - 1) % URLS.length];
+    
     try {
-      return await fn();
+      return await http({
+        method: method,
+        url: `${currentBaseUrl}${path}`,
+        data: body
+      });
     } catch (err) {
       lastErr = err;
-      // No reintentar en errores de cliente (4xx)
+      
+      // No reintentar si es error de cliente (4xx) como 404 o 400
       if (err.status && err.status >= 400 && err.status < 500) throw err;
-      console.warn(`[BdApiClient] ${label} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
+      
+      console.warn(`[BdApiClient] ${label} — Usando: ${currentBaseUrl} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
+      
       if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY * attempt);
     }
   }
