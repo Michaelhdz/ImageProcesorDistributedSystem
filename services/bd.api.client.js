@@ -27,26 +27,24 @@ http.interceptors.response.use(
   }
 );
 
-async function withRetry(method, path, body = null, label) {
+async function withRetry(methodName, path, body = null, label) {
   let lastErr;
   
+  // Validamos que methodName sea un string, si no, por defecto es 'get'
+  const validMethod = (typeof methodName === 'string' ? methodName : 'get').toLowerCase();
+
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const currentBaseUrl = URLS[(attempt - 1) % URLS.length];
     
     try {
-      // Configuramos la petición de forma explícita
-      const config = {
-        method: method.toLowerCase(),
+      // Usamos axios(config) que es la forma más estable
+      return await http({
+        method: validMethod,
         url: `${currentBaseUrl}${path}`,
         data: body
-      };
-
-      // Realizamos la petición usando la instancia 'http'
-      return await http(config); 
+      });
     } catch (err) {
       lastErr = err;
-      
-      // Si es un error de respuesta (4xx), no reintentes
       if (err.status && err.status >= 400 && err.status < 500) throw err;
       
       console.warn(`[BdApiClient] ${label} — Usando: ${currentBaseUrl} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
