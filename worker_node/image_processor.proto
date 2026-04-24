@@ -70,4 +70,5 @@ message HealthResponse {
   int32  active_jobs   = 2;
   float  cpu_usage_pct = 3;
   float  mem_usage_pct = 4;
+  int32 active_threads = 5;
 }
