@@ -29,36 +29,37 @@ http.interceptors.response.use(
 
 async function withRetry(methodName, path, body, label) {
   let lastErr;
-  const m = String(methodName).toLowerCase();
+  
+  // ASEGURAMOS QUE EL MÉTODO SEA UN STRING LIMPIO
+  const m = String(methodName).toUpperCase(); 
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    // 1. Limpiamos la URL base y el path de espacios o caracteres extraños
     const base = URLS[(attempt - 1) % URLS.length].trim();
     const cleanPath = path.startsWith('/') ? path : `/${path}`;
     
     try {
-      // 2. Usamos el constructor nativo para validar la URL
       const urlObj = new URL(cleanPath, base);
       const finalUrl = urlObj.toString();
 
-      return await http.request({
+      // LLAMADA EXPLÍCITA
+      const response = await http.request({
         method: m,
         url: finalUrl,
         data: body
       });
+
+      return response.data; // Retornamos los datos directamente
     } catch (err) {
       lastErr = err;
-      if (err.status && err.status >= 400 && err.status < 500) throw err;
+      if (err.response?.status >= 400 && err.response?.status < 500) throw err;
       
-      // Si falla, mostramos exactamente qué URL se intentó usar para depurar
-      console.warn(`[BdApiClient] ${label} — Intento ${attempt}/${MAX_RETRIES} fallido en ${URLS[(attempt - 1) % URLS.length]}: ${err.message}`);
+      console.warn(`[BdApiClient] ${label} — Intento ${attempt}/${MAX_RETRIES} fallido en ${base}: ${err.message}`);
       
       if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY * attempt);
     }
   }
   throw lastErr;
 }
-
 class BdApiClient extends IBdApi {
   get(path) {
     return withRetry(() => http.get(path), `GET ${path}`);
