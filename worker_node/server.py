@@ -136,8 +136,8 @@ def serve():
     # Crear servidor gRPC con ThreadPoolExecutor
     _server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=MAX_WORKERS),
-        options=[
-            ('grpc.max_receive_message_length', MAX_MSG_SIZE),
+            options=[
+                ('grpc.max_receive_message_length', MAX_MSG_SIZE),
             ('grpc.max_send_message_length',    MAX_MSG_SIZE),
         ]
     )

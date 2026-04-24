@@ -63,7 +63,7 @@ if [ ! -f .env ]; then
   log "Creando .env desde .env.example..."
   cp .env.example .env
   warn "IMPORTANTE: Editar .env y ajustar NODE_HOST con la IP de esta VM"
-  warn "  VM2: NODE_HOST=192.168.1.21"
+  warn "  VM3: NODE_HOST=192.168.1.24"
   # warn "  VM3: NODE_HOST=192.168.56.12"
 else
   log ".env ya existe — no se sobreescribe"

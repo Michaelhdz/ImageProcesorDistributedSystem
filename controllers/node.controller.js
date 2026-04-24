@@ -16,7 +16,7 @@ class NodeController {
         return res.status(401).json({ error: 'Clave interna inválida' });
       }
 
-      const { host, port } = req.body;
+      const { host, port, cpu_usage_pct, mem_usage_pct, active_jobs } = req.body;
       if (!host || !port) {
         return res.status(400).json({ error: 'host y port son requeridos' });
       }
@@ -25,6 +25,17 @@ class NodeController {
       }
 
       const node = await NodeManager.receiveHeartbeat(host, parseInt(port));
+
+      if (cpu !== undefined && ram !== undefined) {
+        BdApiClient.saveMetrics({
+          node_id: `${host}:${port}`, // O usa node.id si prefieres el ID numérico
+          cpu_usage: cpu,
+          ram_usage: ram,
+          active_threads: threads || 0
+        }).catch(err => console.error('[NodeController] Error persistiendo métricas:', err.message));
+        // Nota: No usamos 'await' para no retrasar la respuesta al Worker (Fire and forget)
+      }
+
       return res.status(200).json({ nodeId: node.id });
     } catch (err) {
       console.error('[NodeController] heartbeat error:', err.message);
