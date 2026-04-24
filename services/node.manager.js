@@ -86,7 +86,7 @@ class NodeManager extends INodeService {
     try {
       // Consultamos a la BD (vía tu API de persistencia) las últimas métricas registradas
       // Esto cumple con el requisito de "Solicitud de métricas"
-      const metrics = await BdApiClient.get('/metrics/latest-summary');
+      const metrics = await BdApiClient.get('/metrics');
       
       // Opcional: Podrías enriquecer esto verificando si el nodo está SERVING por gRPC justo ahora
       return metrics.map(m => ({
