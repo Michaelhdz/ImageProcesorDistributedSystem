@@ -3,15 +3,14 @@ require('dotenv').config();
 const axios   = require('axios');
 const IBdApi  = require('../interfaces/IBdApi');
 
-const RAW_URLS = process.env.BD_API_URL || 'http://192.168.1.22:8000';
-const URLS = RAW_URLS.split(',').map(url => url.trim());
-
+const BASE_URL     = process.env.BD_API_URL || 'http://192.168.1.22:8000';
 const MAX_RETRIES  = 3;
 const RETRY_DELAY  = 500; // ms
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 const http = axios.create({
+  baseURL: BASE_URL,
   timeout: 8000,
   headers: { 'Content-Type': 'application/json' }
 });
@@ -27,56 +26,38 @@ http.interceptors.response.use(
   }
 );
 
-async function withRetry(methodName, path, body, label) {
+async function withRetry(fn, label) {
   let lastErr;
-  
-  // ASEGURAMOS QUE EL MÉTODO SEA UN STRING LIMPIO
-  const m = String(methodName).toUpperCase(); 
-
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const base = URLS[(attempt - 1) % URLS.length].trim();
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-    
     try {
-      const urlObj = new URL(cleanPath, base);
-      const finalUrl = urlObj.toString();
-
-      // LLAMADA EXPLÍCITA
-      const response = await http.request({
-        method: m,
-        url: finalUrl,
-        data: body
-      });
-
-      return response.data; // Retornamos los datos directamente
+      return await fn();
     } catch (err) {
       lastErr = err;
-      if (err.response?.status >= 400 && err.response?.status < 500) throw err;
-      
-      console.warn(`[BdApiClient] ${label} — Intento ${attempt}/${MAX_RETRIES} fallido en ${base}: ${err.message}`);
-      
+      // No reintentar en errores de cliente (4xx)
+      if (err.status && err.status >= 400 && err.status < 500) throw err;
+      console.warn(`[BdApiClient] ${label} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
       if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY * attempt);
     }
   }
   throw lastErr;
 }
 class BdApiClient extends IBdApi {
-  // Aquí es donde estaba el error: pasábamos funciones en lugar de strings
   get(path) {
-    return withRetry('GET', path, null, `GET ${path}`);
+    return withRetry(() => http.get(path), `GET ${path}`);
   }
   post(path, body) {
-    return withRetry('POST', path, body, `POST ${path}`);
+    return withRetry(() => http.post(path, body), `POST ${path}`);
   }
   patch(path, body) {
-    return withRetry('PATCH', path, body, `PATCH ${path}`);
+    return withRetry(() => http.patch(path, body), `PATCH ${path}`);
   }
   delete(path) {
-    return withRetry('DELETE', path, null, `DELETE ${path}`);
+    return withRetry(() => http.delete(path), `DELETE ${path}`);
   }
   saveMetrics(metricsData) {
     return this.post('/metrics', metricsData);
   }
 }
+
 
 module.exports = new BdApiClient();
