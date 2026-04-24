@@ -29,26 +29,29 @@ http.interceptors.response.use(
 
 async function withRetry(methodName, path, body, label) {
   let lastErr;
-  
-  // ASEGURAMOS QUE EL MÉTODO SEA UN STRING VÁLIDO
   const m = String(methodName).toLowerCase();
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const currentBaseUrl = URLS[(attempt - 1) % URLS.length];
-    const fullUrl = `${currentBaseUrl}${path}`;
+    // 1. Limpiamos la URL base y el path de espacios o caracteres extraños
+    const base = URLS[(attempt - 1) % URLS.length].trim();
+    const cleanPath = path.startsWith('/') ? path : `/${path}`;
     
     try {
-      // LLAMADA DIRECTA POR PROPIEDAD PARA EVITAR .toLowerCase() INTERNO DE AXIOS
+      // 2. Usamos el constructor nativo para validar la URL
+      const urlObj = new URL(cleanPath, base);
+      const finalUrl = urlObj.toString();
+
       return await http.request({
         method: m,
-        url: fullUrl,
+        url: finalUrl,
         data: body
       });
     } catch (err) {
       lastErr = err;
       if (err.status && err.status >= 400 && err.status < 500) throw err;
       
-      console.warn(`[BdApiClient] ${label} — Usando: ${currentBaseUrl} — intento ${attempt}/${MAX_RETRIES} fallido: ${err.message}`);
+      // Si falla, mostramos exactamente qué URL se intentó usar para depurar
+      console.warn(`[BdApiClient] ${label} — Intento ${attempt}/${MAX_RETRIES} fallido en ${URLS[(attempt - 1) % URLS.length]}: ${err.message}`);
       
       if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY * attempt);
     }
