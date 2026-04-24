@@ -27,20 +27,21 @@ http.interceptors.response.use(
   }
 );
 
-async function withRetry(methodName, path, body = null, label) {
+async function withRetry(methodName, path, body, label) {
   let lastErr;
   
-  // Validamos que methodName sea un string, si no, por defecto es 'get'
-  const validMethod = (typeof methodName === 'string' ? methodName : 'get').toLowerCase();
+  // ASEGURAMOS QUE EL MÉTODO SEA UN STRING VÁLIDO
+  const m = String(methodName).toLowerCase();
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     const currentBaseUrl = URLS[(attempt - 1) % URLS.length];
+    const fullUrl = `${currentBaseUrl}${path}`;
     
     try {
-      // Usamos axios(config) que es la forma más estable
-      return await http({
-        method: validMethod,
-        url: `${currentBaseUrl}${path}`,
+      // LLAMADA DIRECTA POR PROPIEDAD PARA EVITAR .toLowerCase() INTERNO DE AXIOS
+      return await http.request({
+        method: m,
+        url: fullUrl,
         data: body
       });
     } catch (err) {
