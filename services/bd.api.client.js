@@ -55,13 +55,6 @@ class BdApiClient extends IBdApi {
   delete(path) {
     return withRetry(() => http.delete(path), `DELETE ${path}`);
   }
-  /**
-   * Persiste las métricas de hardware de un nodo en la base de datos.
-   * @param {Object} metricsData - { node_id, cpu_usage, ram_usage, active_threads }
-   */
-  saveMetrics(metricsData) {
-    return this.post('/metrics', metricsData);
-  }
 }
 
 
