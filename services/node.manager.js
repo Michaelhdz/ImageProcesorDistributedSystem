@@ -81,6 +81,24 @@ class NodeManager extends INodeService {
     }
   }
 
+  async getAllNodesMetrics() {
+    console.log('[NodeManager] Solicitando métricas consolidadas de consumo');
+    try {
+      // Consultamos a la BD (vía tu API de persistencia) las últimas métricas registradas
+      // Esto cumple con el requisito de "Solicitud de métricas"
+      const metrics = await BdApiClient.get('/metrics/latest-summary');
+      
+      // Opcional: Podrías enriquecer esto verificando si el nodo está SERVING por gRPC justo ahora
+      return metrics.map(m => ({
+        ...m,
+        online: this.grpcClients.has(m.node_id)
+      }));
+    } catch (err) {
+      console.error('[NodeManager] Error en getAllNodesMetrics:', err.message);
+      throw err;
+    }
+  }
+
   // ── Selección de nodo (least-load) ──────────────────────────────────────────
 
   async selectNode() {

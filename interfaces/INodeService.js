@@ -20,5 +20,8 @@ class INodeService {
   async deleteNode(nodeId) {
     throw new Error('INodeService.deleteNode() no implementado');
   }
+  async getAllNodesMetrics() {
+    throw new Error('INodeService.getAllNodesMetrics() no implementado');
+  }
 }
 module.exports = INodeService;

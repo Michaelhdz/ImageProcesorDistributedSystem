@@ -36,4 +36,10 @@ router.delete(
   (req, res) => NodeController.deleteNode(req, res)
 );
 
+router.get(
+  '/metrics',
+  authMiddleware, 
+  (req, res) => NodeController.getAllMetrics(req, res)
+);
+
 module.exports = router;

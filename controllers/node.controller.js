@@ -74,6 +74,20 @@ class NodeController {
     }
   }
 
+  async getAllMetrics(req, res) {
+    try {
+      const metrics = await NodeManager.getAllNodesMetrics();
+      
+      // Si no hay métricas pero los nodos existen, devolvemos lista vacía con 200
+      return res.status(200).json(metrics);
+    } catch (err) {
+      console.error('[NodeController] getAllMetrics error:', err.message);
+      return res.status(500).json({ 
+        error: 'Error al recuperar las métricas de consumo del sistema distribuido' 
+      });
+    }
+  }
+
   async deleteNode(req, res) {
     try {
       const nodeId = parseInt(req.params.id);
