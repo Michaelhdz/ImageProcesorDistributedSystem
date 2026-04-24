@@ -61,22 +61,22 @@ async function withRetry(methodName, path, body, label) {
   throw lastErr;
 }
 class BdApiClient extends IBdApi {
+  // Aquí es donde estaba el error: pasábamos funciones en lugar de strings
   get(path) {
-    return withRetry(() => http.get(path), `GET ${path}`);
+    return withRetry('GET', path, null, `GET ${path}`);
   }
   post(path, body) {
-    return withRetry(() => http.post(path, body), `POST ${path}`);
+    return withRetry('POST', path, body, `POST ${path}`);
   }
   patch(path, body) {
-    return withRetry(() => http.patch(path, body), `PATCH ${path}`);
+    return withRetry('PATCH', path, body, `PATCH ${path}`);
   }
   delete(path) {
-    return withRetry(() => http.delete(path), `DELETE ${path}`);
+    return withRetry('DELETE', path, null, `DELETE ${path}`);
   }
   saveMetrics(metricsData) {
     return this.post('/metrics', metricsData);
   }
 }
-
 
 module.exports = new BdApiClient();
