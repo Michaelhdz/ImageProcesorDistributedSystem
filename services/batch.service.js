@@ -22,7 +22,7 @@ jobQueue.process(async (job) => {
   const { imageJobId, nodeId, jobId, imageId, transformations } = job.data;
   console.log(`[Queue] Procesando job ${job.id} — imageJobId=${imageJobId} | nodo=${nodeId}`);
 
-  const nodeEntry = NodeManager.grpcClients.get(nodeId);
+  const nodeEntry = NodeManager.grpcClients.get(String(nodeId));
   if (!nodeEntry) {
     throw new Error(`Nodo ${nodeId} no tiene cliente gRPC activo`);
   }
@@ -230,7 +230,7 @@ class BatchService extends IBatchService {
       throw e;
     }
 
-    const nodeEntry = NodeManager.grpcClients.get(job.node_id);
+    const nodeEntry = NodeManager.grpcClients.get(String(job.node_id));
     if (!nodeEntry) {
       const e  = new Error(`Nodo ${job.node_id} no disponible`);
       e.code   = 'NODE_UNAVAILABLE';

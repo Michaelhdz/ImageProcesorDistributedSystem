@@ -60,8 +60,9 @@ class NodeManager extends INodeService {
   // ── Gestión de clientes gRPC ────────────────────────────────────────────────
 
   registerGrpcClient(node) {
-    if (this.grpcClients.has(node.id)) {
-      console.log(`[NodeManager] Cliente gRPC nodo ${node.id} ya registrado — actualizando last_ping`);
+    const nodeKey = String(node.id);
+    if (this.grpcClients.has(nodeKey)) {
+      console.log(`[NodeManager] Cliente gRPC nodo ${nodeKey} ya registrado — actualizando last_ping`);
       return;
     }
     const client = new proto.ImageProcessorService(
@@ -69,12 +70,12 @@ class NodeManager extends INodeService {
       grpc.credentials.createInsecure(),
       GRPC_OPTIONS
     );
-    this.grpcClients.set(node.id, { client, node });
-    console.log(`[NodeManager] Cliente gRPC registrado — nodo ${node.id} (${node.host}:${node.port})`);
+    this.grpcClients.set(nodeKey, { client, node });
+    console.log(`[NodeManager] Cliente gRPC registrado — nodo ${nodeKey} (${node.host}:${node.port})`);
   }
 
   removeGrpcClient(nodeId) {
-    const id = parseInt(nodeId);
+    const id = String(nodeId);
     if (this.grpcClients.has(id)) {
       this.grpcClients.delete(id);
       console.log(`[NodeManager] Cliente gRPC eliminado — nodo ${id}`);
@@ -91,7 +92,7 @@ class NodeManager extends INodeService {
       // Opcional: Podrías enriquecer esto verificando si el nodo está SERVING por gRPC justo ahora
       return metrics.map(m => ({
         ...m,
-        online: this.grpcClients.has(m.node_id)
+        online: this.grpcClients.has(String(m.node_id))
       }));
     } catch (err) {
       console.error('[NodeManager] Error en getAllNodesMetrics:', err.message);
@@ -213,8 +214,8 @@ class NodeManager extends INodeService {
   const promises = [];
 
   for (const [nodeId, jobs] of Object.entries(jobsByNodeId)) {
-    const nodeIdInt = parseInt(nodeId);
-    const nodeEntry = this.grpcClients.get(nodeIdInt);
+    const nodeKey = String(nodeId);
+    const nodeEntry = this.grpcClients.get(nodeKey);
 
     if (!nodeEntry) {
       console.warn(`[NodeManager] Fan-out: cliente gRPC no encontrado para nodo ${nodeId} — se omiten ${jobs.length} imágenes`);
