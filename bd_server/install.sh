@@ -52,6 +52,8 @@ log "Ajustando contraseña del usuario postgres"
 sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
 
 log "Aplicando esquema de base de datos"
+chmod +rx "$PROJECT_DIR"
+chmod +r "$PROJECT_DIR/schema.sql"
 sudo -u postgres psql -d imageprocessing -f "$PROJECT_DIR/schema.sql"
 
 cd "$PROJECT_DIR"
