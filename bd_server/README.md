@@ -35,7 +35,16 @@ $env:DB_USER='postgres'
 $env:DB_PASSWORD='postgres'
 ```
 
-## 5. Arrancar
+## 5. Instalación automatizada en Ubuntu Server
+Desde el directorio `bd_server`:
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+El instalador crea un entorno virtual Python, instala dependencias, configura PostgreSQL, crea la base `imageprocessing`, aplica `schema.sql` y generará un archivo `.env`.
+
+## 6. Arrancar
 ```powershell
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```

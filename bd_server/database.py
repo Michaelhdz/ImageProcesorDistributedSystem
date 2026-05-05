@@ -4,28 +4,23 @@ import psycopg2.extras
 
 DB_CONFIG = {
     "host":     os.getenv("DB_HOST",     "127.0.0.1"),
-    "port":     int(os.getenv("DB_PORT", "5434")),
+    "port":     int(os.getenv("DB_PORT", "5432")),
     "dbname":   os.getenv("DB_NAME",     "imageprocessing"),
     "user":     os.getenv("DB_USER",     "postgres"),
     "password": os.getenv("DB_PASSWORD", "postgres"),
 }
 
 def get_connection():
-    # Los hosts y puertos deben estar en el mismo orden
-    # Host 1 (Maestro) usa Puerto 1, Host 2 (Réplica) usa Puerto 2
-    hosts = "10.245.168.182,10.245.168.246"
-    ports = "5434,5432"
-    
-    dbname = "imageprocessing"
-    user = "postgres"
-    password = "postgres"
-
-    # Construimos la cadena usando parámetros separados para host y port
+    # Construimos la cadena de conexión usando variables de entorno.
     conn_str = (
-        f"host={hosts} port={ports} dbname={dbname} user={user} password={password} "
+        f"host={DB_CONFIG['host']} "
+        f"port={DB_CONFIG['port']} "
+        f"dbname={DB_CONFIG['dbname']} "
+        f"user={DB_CONFIG['user']} "
+        f"password={DB_CONFIG['password']} "
         f"target_session_attrs=any connect_timeout=5"
     )
-    
+
     try:
         return psycopg2.connect(
             conn_str,
