@@ -147,6 +147,7 @@ class ImageProcessorServicer(IImageProcessorService, pb_grpc.ImageProcessorServi
     def ProcessImage(self, request, context):
         self._inc_jobs()
         start = time.time()
+        logger.info(f"[Servicer] ProcessImage: request={request} ")
         logger.info(f"[Servicer] ProcessImage: jobId={request.job_id} | imageId={request.image_id} | "
                     f"transformaciones={len(request.transformations)}")
         try:

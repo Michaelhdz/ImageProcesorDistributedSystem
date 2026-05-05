@@ -17,7 +17,7 @@ VALID_TYPES = {
 class TransformationPipeline:
 
     def __init__(self):
-        self.steps = []  # lista de (type: str, params: dict)
+        self.steps = []  
 
     def add_step(self, transformation_type: str, params_json: str):
         if transformation_type not in VALID_TYPES:
@@ -28,6 +28,7 @@ class TransformationPipeline:
         except json.JSONDecodeError as e:
             raise ValueError(f"params inválido para {transformation_type}: {e}")
         self.steps.append((transformation_type, params))
+        logger.info(f"[Pipeline] Ejecutando {len(self.steps)} paso(s)")
 
     def execute(self, processor: ImageProcessor) -> ImageProcessor:
         dispatch = {
