@@ -52,9 +52,15 @@ log "Ajustando contraseña del usuario postgres"
 sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'postgres';"
 
 log "Aplicando esquema de base de datos"
-chmod +rx "$PROJECT_DIR"
-chmod +r "$PROJECT_DIR/schema.sql"
-sudo -u postgres psql -d imageprocessing -f "$PROJECT_DIR/schema.sql"
+# Copiamos a /tmp para evitar problemas de permisos de ruta (home/user/...)
+cp "$PROJECT_DIR/schema.sql" /tmp/schema.sql
+chmod 644 /tmp/schema.sql
+
+# Ejecutamos el comando apuntando al archivo en /tmp
+sudo -u postgres psql -d imageprocessing -f /tmp/schema.sql
+
+# Limpiamos
+rm /tmp/schema.sql
 
 cd "$PROJECT_DIR"
 
@@ -82,6 +88,12 @@ EOF
 else
   log "Archivo .env ya existe — no se sobreescribe"
 fi
+
+log "Cambiando método de autenticación a MD5..."
+PG_VER=$(psql --version | grep -P -o '\d+(?=\.)' | head -1)
+sudo sed -i '/^local\s+all\s+postgres\s+/s/peer/md5/' /etc/postgresql/$PG_VER/main/pg_hba.conf
+sudo systemctl restart postgresql
+
 
 log "Instalación completada"
 
