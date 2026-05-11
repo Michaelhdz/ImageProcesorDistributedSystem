@@ -121,7 +121,7 @@ class BatchService extends IBatchService {
     console.log(`[BatchService] Batch registrado en BD — batchId=${batch.id}`);
 
     for (const file of files) {
-      const meta = metadata.find(m => m.filename === file.originalname) || {
+      const meta = metadata.find(m => m.filename.toLowerCase() === file.originalname.toLowerCase()) || {
         filename: file.originalname, transformations: []
       };
 

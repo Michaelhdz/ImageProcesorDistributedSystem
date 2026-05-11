@@ -33,12 +33,8 @@ def _ensure_dirs():
 def _find_file_by_image_id(directory, image_id):
     """
     Busca cualquier archivo en el directorio que contenga el ID de la imagen.
-    Soporta patrones como 'result_7_7_xxx.png' o '7_result_xxx.png'
     """
-    # Buscamos patrones donde el ID esté rodeado de guiones bajos o al inicio
-    # Esto cubrirá tu caso: result_7_7_imagen.png
     patterns = [
-        os.path.join(directory, f"*_{image_id}_*"),
         os.path.join(directory, f"{image_id}_*"),
         os.path.join(directory, f"result_{image_id}_*")
     ]
